@@ -4,12 +4,10 @@ const form = document.getElementById('quoteForm');
 const quotesList = document.getElementById('quotesList');
 const quotesHeading = document.getElementById('quotesHeading');
 
-// Load all quotes when the page opens
 window.onload = function() {
   fetchQuotes();
 };
 
-// Fetch all quotes from the backend
 function fetchQuotes() {
   fetch(`${API_URL}/quotes`)
     .then(function(response) {
@@ -20,10 +18,12 @@ function fetchQuotes() {
     });
 }
 
-// Save a new quote
 form.addEventListener('submit', function(event) {
   event.preventDefault();
-
+if (!clientName || !serviceDescription || !amount) {
+    alert('Please fill in all fields before saving.');
+    return;
+  }
   const clientName = document.getElementById('clientName').value;
   const serviceDescription = document.getElementById('serviceDescription').value;
   const amount = document.getElementById('amount').value;
@@ -42,7 +42,6 @@ form.addEventListener('submit', function(event) {
     });
 });
 
-// Update quote status
 function updateStatus(id, newStatus) {
   fetch(`${API_URL}/quotes/${id}`, {
     method: 'PATCH',
@@ -54,8 +53,28 @@ function updateStatus(id, newStatus) {
     });
 }
 
-// Display quotes on the page
+function updateDashboard(quotes) {
+  const totalInvoiced = quotes.reduce(function(sum, quote) {
+    return sum + parseFloat(quote.amount);
+  }, 0);
+
+  const totalPaid = quotes.reduce(function(sum, quote) {
+    if (quote.status === 'Paid') {
+      return sum + parseFloat(quote.amount);
+    }
+    return sum;
+  }, 0);
+
+  const totalOutstanding = totalInvoiced - totalPaid;
+
+  document.getElementById('totalInvoiced').textContent = 'R' + totalInvoiced.toFixed(2);
+  document.getElementById('totalPaid').textContent = 'R' + totalPaid.toFixed(2);
+  document.getElementById('totalOutstanding').textContent = 'R' + totalOutstanding.toFixed(2);
+}
+
 function displayQuotes(quotes) {
+  updateDashboard(quotes);
+
   if (quotes.length === 0) {
     quotesHeading.style.display = 'none';
     quotesList.innerHTML = '';
