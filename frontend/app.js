@@ -3,6 +3,17 @@ const API_URL = 'http://localhost:3000';
 const form = document.getElementById('quoteForm');
 const quotesList = document.getElementById('quotesList');
 const quotesHeading = document.getElementById('quotesHeading');
+const amountInput = document.getElementById('amount');
+
+amountInput.addEventListener('input', function() {
+  const amount = parseFloat(amountInput.value);
+  if (!isNaN(amount)) {
+    const final = amount * 1.15;
+    document.getElementById('finalAmount').value = final.toFixed(2);
+  } else {
+    document.getElementById('finalAmount').value = '';
+  }
+});
 
 window.onload = function() {
   fetchQuotes();
@@ -20,13 +31,15 @@ function fetchQuotes() {
 
 form.addEventListener('submit', function(event) {
   event.preventDefault();
-if (!clientName || !serviceDescription || !amount) {
-    alert('Please fill in all fields before saving.');
-    return;
-  }
+
   const clientName = document.getElementById('clientName').value;
   const serviceDescription = document.getElementById('serviceDescription').value;
   const amount = document.getElementById('amount').value;
+
+  if (!clientName || !serviceDescription || !amount) {
+    alert('Please fill in all fields before saving.');
+    return;
+  }
 
   fetch(`${API_URL}/quotes`, {
     method: 'POST',
@@ -38,6 +51,7 @@ if (!clientName || !serviceDescription || !amount) {
     })
     .then(function() {
       form.reset();
+      document.getElementById('finalAmount').value = '';
       fetchQuotes();
     });
 });
