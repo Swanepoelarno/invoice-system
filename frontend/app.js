@@ -42,6 +42,7 @@ function fetchQuotes() {
       displayQuotes(quotes);
       displayInvoices(quotes);
       updateDashboard(quotes);
+      updateChart(quotes);
     });
 }
 
@@ -51,8 +52,9 @@ form.addEventListener('submit', function(event) {
   const clientName = document.getElementById('clientName').value;
   const serviceDescription = document.getElementById('serviceDescription').value;
   const amount = document.getElementById('amount').value;
+  const quoteDate = document.getElementById('quoteDate').value;
 
-  if (!clientName || !serviceDescription || !amount) {
+  if (!clientName || !serviceDescription || !amount || !quoteDate) {
     alert('Please fill in all fields before saving.');
     return;
   }
@@ -60,7 +62,7 @@ form.addEventListener('submit', function(event) {
   fetch(`${API_URL}/quotes`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientName, serviceDescription, amount })
+    body: JSON.stringify({ clientName, serviceDescription, amount, quoteDate })
   })
     .then(function(response) {
       return response.json();
@@ -81,6 +83,80 @@ function updateStatus(id, newStatus) {
     .then(function() {
       fetchQuotes();
     });
+}
+
+let paymentChart = null;
+
+function updateChart(quotes) {
+  const grouped = {};
+
+  quotes.forEach(function(quote) {
+    const date = quote.quoteDate || quote.createdAt.split(' ')[0];
+    if (!grouped[date]) {
+      grouped[date] = { paid: 0, outstanding: 0 };
+    }
+    if (quote.status === 'Paid') {
+      grouped[date].paid += parseFloat(quote.amount);
+    } else {
+      grouped[date].outstanding += parseFloat(quote.amount);
+    }
+  });
+
+  const labels = Object.keys(grouped).sort();
+  const paidData = labels.map(function(d) { return grouped[d].paid; });
+  const outstandingData = labels.map(function(d) { return grouped[d].outstanding; });
+
+  if (paymentChart) {
+    paymentChart.destroy();
+  }
+
+  const ctx = document.getElementById('paymentChart').getContext('2d');
+  paymentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Paid',
+          data: paidData,
+          borderColor: '#27ae60',
+          backgroundColor: 'rgba(39, 174, 96, 0.1)',
+          tension: 0.4,
+          pointRadius: 5,
+          fill: true
+        },
+        {
+          label: 'Outstanding',
+          data: outstandingData,
+          borderColor: '#e67e22',
+          backgroundColor: 'rgba(230, 126, 34, 0.1)',
+          tension: 0.4,
+          pointRadius: 5,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top' },
+        title: {
+          display: true,
+          text: 'Paid vs Outstanding by Date',
+          font: { size: 16 },
+          color: '#1F3864'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) { return 'R' + value; }
+          }
+        }
+      }
+    }
+  });
 }
 
 function updateDashboard(quotes) {
@@ -122,6 +198,7 @@ function displayQuotes(quotes) {
     card.innerHTML = `
       <p><strong>Client:</strong> ${quote.clientName}</p>
       <p><strong>Service:</strong> ${quote.serviceDescription}</p>
+      <p><strong>Date:</strong> ${quote.quoteDate || 'N/A'}</p>
       <p><strong>Amount:</strong> R${quote.amount}</p>
       <p><strong>Status:</strong> <span class="status">${quote.status}</span></p>
       <div class="actions">
@@ -153,6 +230,7 @@ function displayInvoices(quotes) {
     card.innerHTML = `
       <p><strong>Client:</strong> ${quote.clientName}</p>
       <p><strong>Service:</strong> ${quote.serviceDescription}</p>
+      <p><strong>Date:</strong> ${quote.quoteDate || 'N/A'}</p>
       <p><strong>Amount:</strong> R${quote.amount}</p>
       <p><strong>Status:</strong> <span class="status">${quote.status}</span></p>
       <div class="actions">
