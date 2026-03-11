@@ -5,8 +5,7 @@ const quotesList = document.getElementById('quotesList');
 const quotesHeading = document.getElementById('quotesHeading');
 const amountInput = document.getElementById('amount');
 
-// Navigation
-function showView(viewName) {
+function showView(viewName, element) {
   document.querySelectorAll('.view').forEach(function(view) {
     view.classList.remove('active');
   });
@@ -14,11 +13,10 @@ function showView(viewName) {
     item.classList.remove('active');
   });
   document.getElementById('view-' + viewName).classList.add('active');
-  event.currentTarget.classList.add('active');
+  element.classList.add('active');
   fetchQuotes();
 }
 
-// VAT calculation
 amountInput.addEventListener('input', function() {
   const amount = parseFloat(amountInput.value);
   if (!isNaN(amount)) {
@@ -196,6 +194,7 @@ function displayQuotes(quotes) {
     const card = document.createElement('div');
     card.className = 'quote-card';
     card.innerHTML = `
+      <p><strong>Quote No:</strong> ${quote.quoteNumber || 'N/A'}</p>
       <p><strong>Client:</strong> ${quote.clientName}</p>
       <p><strong>Service:</strong> ${quote.serviceDescription}</p>
       <p><strong>Date:</strong> ${quote.quoteDate || 'N/A'}</p>
@@ -227,15 +226,17 @@ function displayInvoices(quotes) {
   filtered.forEach(function(quote) {
     const card = document.createElement('div');
     card.className = 'invoice-card';
+    const actions = quote.status === 'Paid'
+      ? '<p style="color:#27ae60; font-weight:bold; margin-top:12px;">✓ Paid</p>'
+      : '<div class="actions"><button onclick="updateStatus(' + quote.id + ', \'Paid\')">Mark as Paid</button></div>';
     card.innerHTML = `
+      <p><strong>Invoice No:</strong> ${quote.invoiceNumber || 'N/A'}</p>
       <p><strong>Client:</strong> ${quote.clientName}</p>
       <p><strong>Service:</strong> ${quote.serviceDescription}</p>
       <p><strong>Date:</strong> ${quote.quoteDate || 'N/A'}</p>
       <p><strong>Amount:</strong> R${quote.amount}</p>
       <p><strong>Status:</strong> <span class="status">${quote.status}</span></p>
-      <div class="actions">
-        <button onclick="updateStatus(${quote.id}, 'Paid')">Mark as Paid</button>
-      </div>
+      ${actions}
     `;
     invoicesList.appendChild(card);
   });
