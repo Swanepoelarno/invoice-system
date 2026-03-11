@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice System</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+    <h1>Invoice System</h1>
+
+    <h2>Create New Quote</h2>
+
+    <form id="quoteForm">
+
+      <label>Client Name</label>
+<input type="text" id="clientName" placeholder="Enter client name">
+
+      <br><br>
+
+      <label>Service Description</label>
+<input type="text" id="serviceDescription" placeholder="Describe the service">
+
+      <br><br>
+
+      <label>Amount (R)</label>
+<input type="number" id="amount" placeholder="0.00">
+
+      <br><br>
+
+      <button type="submit">Save Quote</button>
+<h2 id="quotesHeading" style="display:none; margin-top:40px;">Saved Quotes</h2>
+
+<div id="quotesList"></div>
+    </form>
+<script src="app.js"></script>
+  </body>
+</html>
