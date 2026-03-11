@@ -5,48 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice System</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   </head>
   <body>
 
-    <h1>Invoice System</h1>
-
-    <div class="dashboard">
-      <div class="dashboard-card">
-        <p class="dashboard-label">Total Invoiced</p>
-        <p class="dashboard-value" id="totalInvoiced">R0</p>
-      </div>
-      <div class="dashboard-card">
-        <p class="dashboard-label">Total Paid</p>
-        <p class="dashboard-value" id="totalPaid">R0</p>
-      </div>
-      <div class="dashboard-card">
-        <p class="dashboard-label">Outstanding</p>
-        <p class="dashboard-value" id="totalOutstanding">R0</p>
-      </div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-logo">IS</div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" onclick="showView('dashboard')">
+          <i class="fas fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="showView('quotes')">
+          <i class="fas fa-file-alt"></i>
+          <span>Quotes</span>
+        </div>
+        <div class="nav-item" onclick="showView('invoices')">
+          <i class="fas fa-file-invoice-dollar"></i>
+          <span>Invoices</span>
+        </div>
+      </nav>
     </div>
 
-    <h2>Create New Quote</h2>
+    <!-- Main Content -->
+    <div class="main">
 
-    <form id="quoteForm">
-      <label>Client Name</label>
-      <input type="text" id="clientName" placeholder="Enter client name">
+      <!-- Dashboard View -->
+      <div id="view-dashboard" class="view active">
+        <h1>Dashboard</h1>
+        <div class="dashboard">
+          <div class="dashboard-card">
+            <p class="dashboard-label">Total Invoiced</p>
+            <p class="dashboard-value" id="totalInvoiced">R0</p>
+          </div>
+          <div class="dashboard-card">
+            <p class="dashboard-label">Total Paid</p>
+            <p class="dashboard-value" id="totalPaid">R0</p>
+          </div>
+          <div class="dashboard-card">
+            <p class="dashboard-label">Outstanding</p>
+            <p class="dashboard-value" id="totalOutstanding">R0</p>
+          </div>
+        </div>
+      </div>
 
-      <label>Service Description</label>
-      <input type="text" id="serviceDescription" placeholder="Describe the service">
+      <!-- Quotes View -->
+      <div id="view-quotes" class="view">
+        <h1>Quotes</h1>
 
-      <label>Amount (R)</label>
-      <input type="number" id="amount" placeholder="0.00">
+        <h2>Create New Quote</h2>
+        <form id="quoteForm">
+          <label>Client Name</label>
+          <input type="text" id="clientName" placeholder="Enter client name">
 
-      <label>Final Amount <span style="font-size:11px; font-weight:normal; color:#888;">— VAT included</span></label>
-      <input type="number" id="finalAmount" placeholder="0.00" readonly>
+          <label>Service Description</label>
+          <input type="text" id="serviceDescription" placeholder="Describe the service">
 
-      <br><br>
+          <label>Amount (R)</label>
+          <input type="number" id="amount" placeholder="0.00">
 
-      <button type="submit">Save Quote</button>
-    </form>
+          <label>Final Amount <span style="font-size:11px; font-weight:normal; color:#888;">— VAT included</span></label>
+          <input type="number" id="finalAmount" placeholder="0.00" readonly>
 
-    <h2 id="quotesHeading" style="display:none; margin-top:40px;">Saved Quotes</h2>
-    <div id="quotesList"></div>
+          <br><br>
+          <button type="submit">Save Quote</button>
+        </form>
+
+        <h2 id="quotesHeading" style="display:none; margin-top:40px;">Saved Quotes</h2>
+        <div id="quotesList"></div>
+      </div>
+
+      <!-- Invoices View -->
+      <div id="view-invoices" class="view">
+        <h1>Invoices</h1>
+        <div id="invoicesList"></div>
+      </div>
+
+    </div>
 
     <script src="app.js"></script>
   </body>

@@ -5,6 +5,20 @@ const quotesList = document.getElementById('quotesList');
 const quotesHeading = document.getElementById('quotesHeading');
 const amountInput = document.getElementById('amount');
 
+// Navigation
+function showView(viewName) {
+  document.querySelectorAll('.view').forEach(function(view) {
+    view.classList.remove('active');
+  });
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.classList.remove('active');
+  });
+  document.getElementById('view-' + viewName).classList.add('active');
+  event.currentTarget.classList.add('active');
+  fetchQuotes();
+}
+
+// VAT calculation
 amountInput.addEventListener('input', function() {
   const amount = parseFloat(amountInput.value);
   if (!isNaN(amount)) {
@@ -26,6 +40,8 @@ function fetchQuotes() {
     })
     .then(function(quotes) {
       displayQuotes(quotes);
+      displayInvoices(quotes);
+      updateDashboard(quotes);
     });
 }
 
@@ -87,9 +103,11 @@ function updateDashboard(quotes) {
 }
 
 function displayQuotes(quotes) {
-  updateDashboard(quotes);
+  const filtered = quotes.filter(function(q) {
+    return q.status === 'Draft' || q.status === 'Sent' || q.status === 'Approved';
+  });
 
-  if (quotes.length === 0) {
+  if (filtered.length === 0) {
     quotesHeading.style.display = 'none';
     quotesList.innerHTML = '';
     return;
@@ -98,7 +116,7 @@ function displayQuotes(quotes) {
   quotesHeading.style.display = 'block';
   quotesList.innerHTML = '';
 
-  quotes.forEach(function(quote) {
+  filtered.forEach(function(quote) {
     const card = document.createElement('div');
     card.className = 'quote-card';
     card.innerHTML = `
@@ -110,9 +128,37 @@ function displayQuotes(quotes) {
         <button onclick="updateStatus(${quote.id}, 'Sent')">Mark as Sent</button>
         <button onclick="updateStatus(${quote.id}, 'Approved')">Mark as Approved</button>
         <button onclick="updateStatus(${quote.id}, 'Invoiced')">Mark as Invoiced</button>
-        <button onclick="updateStatus(${quote.id}, 'Paid')">Mark as Paid</button>
       </div>
     `;
     quotesList.appendChild(card);
+  });
+}
+
+function displayInvoices(quotes) {
+  const invoicesList = document.getElementById('invoicesList');
+  const filtered = quotes.filter(function(q) {
+    return q.status === 'Invoiced' || q.status === 'Paid';
+  });
+
+  if (filtered.length === 0) {
+    invoicesList.innerHTML = '<p style="color:#888; font-size:14px;">No invoices yet. Mark a quote as Invoiced to see it here.</p>';
+    return;
+  }
+
+  invoicesList.innerHTML = '';
+
+  filtered.forEach(function(quote) {
+    const card = document.createElement('div');
+    card.className = 'invoice-card';
+    card.innerHTML = `
+      <p><strong>Client:</strong> ${quote.clientName}</p>
+      <p><strong>Service:</strong> ${quote.serviceDescription}</p>
+      <p><strong>Amount:</strong> R${quote.amount}</p>
+      <p><strong>Status:</strong> <span class="status">${quote.status}</span></p>
+      <div class="actions">
+        <button onclick="updateStatus(${quote.id}, 'Paid')">Mark as Paid</button>
+      </div>
+    `;
+    invoicesList.appendChild(card);
   });
 }
