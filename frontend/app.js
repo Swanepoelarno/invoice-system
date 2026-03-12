@@ -1,12 +1,80 @@
+const token = localStorage.getItem('token');
+if (!token) {
+  window.location.href = 'login.html';
+}
+const API_URL = 'http://localhost:3000';
+
+const taskForm = document.getElementById('taskForm');
+const tasksList = document.getElementById('tasksList');
+const tasksHeading = document.getElementById('tasksHeading');
+const dashSearchInput = document.getElementById('dashSearchInput');
+const settingsForm = document.getElementById('settingsForm');
+const toastEl = document.getElementById('toast');
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+let allTasks = [];
+let allSubtasks = [];
+let currentTaskFilter = 'all';
+
+function showView(viewName, element) {
+  document.querySelectorAll('.view').forEach(function(view) {
+    view.classList.remove('active');
+  });
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.classList.remove('active');
+  });
+  document.getElementById('view-' + viewName).classList.add('active');
+  if (element) {
+    element.classList.add('active');
+  }
+  if (viewName === 'tasks' || viewName === 'calendar' || viewName === 'dashboard') {
+    fetchTasks();
+  }
+  if (viewName === 'settings') {
+    populateSettingsForm();
+  }
+}
+
+window.onload = function() {
+  applySavedTheme();
+  fetchTasks();
+  loadWeather();
+};
+
+function setLoading(isLoading) {
+  if (!loadingOverlay) return;
+  loadingOverlay.style.display = isLoading ? 'flex' : 'none';
+}
+
+let toastTimeout = null;
+function showToast(message, type, isHtml) {
+  if (!toastEl) return;
+  if (isHtml) {
+    toastEl.innerHTML = message;
+  } else {
+    toastEl.textContent = message;
+  }
+  toastEl.className = 'toast show' + (type ? ' ' + type : '');
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(function() {
+    toastEl.classList.remove('show');
+  }, 3500);
+}
+
 // Settings helpers
 function populateSettingsForm() {
   if (!settingsForm) return;
   const theme = localStorage.getItem('theme') || 'dark';
   const weeklyGoal = parseInt(localStorage.getItem('weekly_goal') || '20', 10);
   const defaultFilter = localStorage.getItem('default_task_filter') || 'all';
+  const weatherCity = localStorage.getItem('weather_city') || 'Pretoria,ZA';
   document.getElementById('settingsTheme').value = theme;
   document.getElementById('settingsWeeklyGoal').value = weeklyGoal;
   document.getElementById('settingsDefaultFilter').value = defaultFilter;
+  const weatherCityInput = document.getElementById('settingsWeatherCity');
+  if (weatherCityInput) {
+    weatherCityInput.value = weatherCity;
+  }
 }
 
 if (settingsForm) {
@@ -15,9 +83,12 @@ if (settingsForm) {
     const theme = document.getElementById('settingsTheme').value;
     const weeklyGoal = document.getElementById('settingsWeeklyGoal').value || '20';
     const defaultFilter = document.getElementById('settingsDefaultFilter').value || 'all';
+     const weatherCityInput = document.getElementById('settingsWeatherCity');
+     const weatherCity = weatherCityInput && weatherCityInput.value ? weatherCityInput.value.trim() : 'Pretoria,ZA';
     localStorage.setItem('theme', theme);
     localStorage.setItem('weekly_goal', String(weeklyGoal));
     localStorage.setItem('default_task_filter', defaultFilter);
+    localStorage.setItem('weather_city', weatherCity);
     currentTaskFilter = defaultFilter;
     document.querySelectorAll('.tasks-filters .pill-filter').forEach(function(btn) {
       btn.classList.toggle('active', btn.getAttribute('data-filter') === defaultFilter);
@@ -25,12 +96,14 @@ if (settingsForm) {
     applySavedTheme();
     refreshDashboard();
     renderTasksList();
+    loadWeather();
     showToast('Settings saved.', 'success');
   });
 }
 
 const exportJsonBtn = document.getElementById('exportJsonBtn');
 const exportCsvBtn = document.getElementById('exportCsvBtn');
+const clearDataBtn = document.getElementById('clearDataBtn');
 
 function triggerDownload(filename, textContent, mime) {
   const blob = new Blob([textContent], { type: mime || 'text/plain' });
@@ -88,62 +161,63 @@ if (exportJsonBtn) {
 if (exportCsvBtn) {
   exportCsvBtn.addEventListener('click', exportTasksCSV);
 }
-const token = localStorage.getItem('token');
-if (!token) {
-  window.location.href = 'login.html';
-}
-const API_URL = 'http://localhost:3000';
 
-const taskForm = document.getElementById('taskForm');
-const tasksList = document.getElementById('tasksList');
-const tasksHeading = document.getElementById('tasksHeading');
-const dashSearchInput = document.getElementById('dashSearchInput');
-const settingsForm = document.getElementById('settingsForm');
-const toastEl = document.getElementById('toast');
-const loadingOverlay = document.getElementById('loadingOverlay');
-
-let allTasks = [];
-let allSubtasks = [];
-let currentTaskFilter = 'all';
-
-function showView(viewName, element) {
-  document.querySelectorAll('.view').forEach(function(view) {
-    view.classList.remove('active');
+if (clearDataBtn) {
+  clearDataBtn.addEventListener('click', function() {
+    const ok = window.confirm('This will permanently delete all tasks and subtasks. Continue?');
+    if (!ok) return;
+    setLoading(true);
+    fetch(API_URL + '/tasks', {
+      method: 'DELETE',
+      headers: { Authorization: token }
+    })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Failed to clear data');
+        return res.json();
+      })
+      .then(function() {
+        allTasks = [];
+        allSubtasks = [];
+        renderTasksList();
+        refreshDashboard();
+        renderCalendar();
+        showToast('All data cleared.', 'success');
+      })
+      .catch(function() {
+        showToast('Failed to clear data.', 'error');
+      })
+      .finally(function() {
+        setLoading(false);
+      });
   });
-  document.querySelectorAll('.nav-item').forEach(function(item) {
-    item.classList.remove('active');
-  });
-  document.getElementById('view-' + viewName).classList.add('active');
-  if (element) {
-    element.classList.add('active');
-  }
-  if (viewName === 'tasks' || viewName === 'calendar' || viewName === 'dashboard') {
-    fetchTasks();
-  }
-  if (viewName === 'settings') {
-    populateSettingsForm();
-  }
 }
 
-window.onload = function() {
-  applySavedTheme();
-  fetchTasks();
-};
+function loadWeather() {
+  const locEl = document.getElementById('weatherLocation');
+  const tempEl = document.getElementById('weatherTemp');
+  const descEl = document.getElementById('weatherDesc');
+  if (!locEl || !tempEl || !descEl) return;
 
-function setLoading(isLoading) {
-  if (!loadingOverlay) return;
-  loadingOverlay.style.display = isLoading ? 'flex' : 'none';
-}
-
-let toastTimeout = null;
-function showToast(message, type) {
-  if (!toastEl) return;
-  toastEl.textContent = message;
-  toastEl.className = 'toast show' + (type ? ' ' + type : '');
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(function() {
-    toastEl.classList.remove('show');
-  }, 3500);
+  const city = localStorage.getItem('weather_city') || 'Pretoria,ZA';
+  locEl.textContent = 'Loading weather for ' + city + '…';
+  fetch(API_URL + '/weather?city=' + encodeURIComponent(city), {
+    headers: { Authorization: token }
+  })
+    .then(function(res) {
+      return res.json();
+    })
+    .then(function(data) {
+      if (data.error) {
+        locEl.textContent = 'Weather unavailable';
+        return;
+      }
+      locEl.textContent = data.name || city;
+      tempEl.textContent = (typeof data.temp === 'number' ? data.temp.toFixed(1) : '--') + '°C';
+      descEl.textContent = data.description || '';
+    })
+    .catch(function() {
+      locEl.textContent = 'Weather unavailable';
+    });
 }
 
 function fetchTasks() {
@@ -178,19 +252,6 @@ taskForm.addEventListener('submit', function(event) {
   const title = document.getElementById('taskTitle').value.trim();
   const description = document.getElementById('taskDescription').value.trim();
   const dueDate = document.getElementById('taskDueDate').value || null;
-  const startTime = document.getElementById('taskStartTime').value || null;
-  const endTime = document.getElementById('taskEndTime').value || null;
-  const priority = document.getElementById('taskPriority').value || 'Medium';
-  const category = document.getElementById('taskCategory').value.trim() || null;
-  const tags = document.getElementById('taskTags').value.trim() || null;
-  const recurrence = document.getElementById('taskRecurrence').value || 'none';
-  const reminderAt = document.getElementById('taskReminderAt').value || null;
-  const attachments = document.getElementById('taskAttachments').value.trim() || null;
-  const subtasksRaw = document.getElementById('taskSubtasks').value.split('\n');
-  const subtasks = subtasksRaw
-    .map(function(line) { return line.trim(); })
-    .filter(function(line) { return line.length > 0; })
-    .map(function(titleLine) { return { title: titleLine, completed: false }; });
 
   if (!title) {
     alert('Please enter a title for the task.');
@@ -206,16 +267,7 @@ taskForm.addEventListener('submit', function(event) {
     body: JSON.stringify({
       title,
       description,
-      dueDate,
-      startTime,
-      endTime,
-      priority,
-      category,
-      tags,
-      recurrence,
-      attachments,
-      reminderAt,
-      subtasks
+      dueDate
     })
   })
     .then(function(res) {
@@ -283,6 +335,40 @@ function updateTaskStatus(id, status) {
     });
 }
 
+function emailTask(id) {
+  const task = allTasks.find(function(t) { return t.id === id; });
+  if (!task) {
+    showToast('Task not found in memory.', 'error');
+    return;
+  }
+  const defaultEmail = localStorage.getItem('notify_email') || '';
+  const to = window.prompt('Send this task to which email address?', defaultEmail);
+  if (!to) return;
+  localStorage.setItem('notify_email', to);
+  setLoading(true);
+  fetch(API_URL + '/tasks/' + id + '/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: token
+    },
+    body: JSON.stringify({ to: to })
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Failed to send email');
+      return res.json();
+    })
+    .then(function() {
+      showToast('Email sent.', 'success');
+    })
+    .catch(function() {
+      showToast('Failed to send email.', 'error');
+    })
+    .finally(function() {
+      setLoading(false);
+    });
+}
+
 function renderTasksList() {
   const now = new Date();
   const todayKey =
@@ -329,12 +415,17 @@ function renderTasksList() {
     card.className = 'quote-card';
     card.dataset.taskId = task.id;
     const statusLabel = task.status || 'Pending';
+    const emailBtnHtml = '<button onclick="emailTask(' + task.id + ')">Email</button>';
     const actions =
       statusLabel === 'Completed'
-        ? '<p style="color:#27ae60; font-weight:bold; margin-top:12px;">✓ Completed</p>'
+        ? '<div class="actions"><p style="color:#27ae60; font-weight:bold; margin-top:4px; margin-bottom:0;">✓ Completed</p>' +
+          emailBtnHtml +
+          '</div>'
         : '<div class="actions"><button onclick="updateTaskStatus(' +
           task.id +
-          ', \'Completed\')">Mark as Completed</button></div>';
+          ', \'Completed\')">Mark as Completed</button>' +
+          emailBtnHtml +
+          '</div>';
 
     const tagsDisplay = (task.tags || '')
       .split(',')
@@ -950,14 +1041,6 @@ function wireDashboardEvents() {
   const refreshBtn = document.getElementById('dashRefreshBtn');
   if (refreshBtn) refreshBtn.addEventListener('click', refreshDashboard);
 
-  const newQuoteBtn = document.getElementById('dashNewQuoteBtn');
-  if (newQuoteBtn) newQuoteBtn.addEventListener('click', function() {
-    const navQuotes = Array.from(document.querySelectorAll('.nav-item')).find(function(el) {
-      return (el.textContent || '').toLowerCase().includes('tasks');
-    });
-    showView('tasks', navQuotes || null);
-  });
-
   const openCompletedBtn = document.getElementById('dashOpenCompletedBtn');
   if (openCompletedBtn) openCompletedBtn.addEventListener('click', function() {
     const navTasks = Array.from(document.querySelectorAll('.nav-item')).find(function(el) {
@@ -1109,6 +1192,19 @@ function renderCalendar() {
       });
       cell.appendChild(pill);
     });
+
+    if (tasksForDay.length > 0) {
+      cell.addEventListener('click', function() {
+        const summaryHtml = tasksForDay
+          .map(function(t) {
+            const title = escapeHtml(t.title || 'Untitled task');
+            const desc = t.description ? ' — ' + escapeHtml(t.description) : '';
+            return title + desc;
+          })
+          .join('<br>');
+        showToast(summaryHtml, 'success', true);
+      });
+    }
 
     cell.addEventListener('dragover', function(ev) {
       ev.preventDefault();

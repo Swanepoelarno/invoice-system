@@ -73,10 +73,6 @@
               <p class="dash-subtitle">Track your tasks and days at a glance.</p>
             </div>
             <div class="dash-cta">
-              <button class="dash-btn primary" type="button" id="dashNewQuoteBtn">
-                <i class="fa-solid fa-plus"></i>
-                <span>New Quote</span>
-              </button>
               <button class="dash-btn" type="button" id="dashRefreshBtn">
                 <i class="fa-solid fa-rotate"></i>
                 <span>Refresh</span>
@@ -128,7 +124,7 @@
                 <section class="dash-panel">
                   <div class="dash-panel-head">
                     <div>
-                      <div class="dash-panel-title">Invoice Analytics</div>
+                      <div class="dash-panel-title">Task Analytics</div>
                       <div class="dash-panel-sub">Tasks created and completed over time</div>
                     </div>
                     <div class="dash-panel-actions">
@@ -145,7 +141,7 @@
                 <section class="dash-panel">
                   <div class="dash-panel-head">
                     <div>
-                      <div class="dash-panel-title">Client Activity</div>
+                      <div class="dash-panel-title">Task Load</div>
                       <div class="dash-panel-sub">Days with the most tasks</div>
                     </div>
                   </div>
@@ -157,6 +153,17 @@
             </div>
 
             <aside class="dash-col-right">
+              <section class="dash-widget">
+                <div class="dash-widget-head">
+                  <div class="dash-widget-title">Weather</div>
+                </div>
+                <div id="weatherCard">
+                  <p id="weatherLocation" style="font-size:14px; color:#9ca3af;">Detecting location…</p>
+                  <p id="weatherTemp" style="font-size:26px; font-weight:700; margin-top:4px;">--°C</p>
+                  <p id="weatherDesc" style="font-size:13px; color:#9ca3af; text-transform:capitalize;">&nbsp;</p>
+                </div>
+              </section>
+
               <section class="dash-widget">
                 <div class="dash-widget-head">
                   <div class="dash-widget-title">Upcoming Tasks</div>
@@ -207,62 +214,8 @@
           <label>Description</label>
           <input type="text" id="taskDescription" placeholder="Optional details">
 
-          <div class="form-row">
-            <div class="form-field">
-              <label>Due Date</label>
-              <input type="date" id="taskDueDate">
-            </div>
-            <div class="form-field">
-              <label>Start Time</label>
-              <input type="time" id="taskStartTime">
-            </div>
-            <div class="form-field">
-              <label>End Time</label>
-              <input type="time" id="taskEndTime">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-field">
-              <label>Priority</label>
-              <select id="taskPriority">
-                <option value="Low">Low</option>
-                <option value="Medium" selected>Medium</option>
-                <option value="High">High</option>
-                <option value="Critical">Critical</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label>Category</label>
-              <input type="text" id="taskCategory" placeholder="Work, Personal, Health…">
-            </div>
-            <div class="form-field">
-              <label>Tags</label>
-              <input type="text" id="taskTags" placeholder="Comma separated e.g. focus,deep-work">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-field">
-              <label>Recurrence</label>
-              <select id="taskRecurrence">
-                <option value="none" selected>None</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label>Reminder</label>
-              <input type="datetime-local" id="taskReminderAt">
-            </div>
-          </div>
-
-          <label>Attachments / Links</label>
-          <textarea id="taskAttachments" rows="2" placeholder="Paste URLs or notes (one per line)"></textarea>
-
-          <label>Subtasks (one per line)</label>
-          <textarea id="taskSubtasks" rows="3" placeholder="Subtask 1&#10;Subtask 2"></textarea>
+          <label>Due Date</label>
+          <input type="date" id="taskDueDate">
 
           <br><br>
           <button type="submit">Save Task</button>
@@ -323,6 +276,10 @@
                 <option value="high">High priority</option>
               </select>
             </div>
+            <div class="form-field">
+              <label>Weather City</label>
+              <input type="text" id="settingsWeatherCity" placeholder="e.g. Pretoria,ZA">
+            </div>
           </div>
 
           <button type="submit">Save Settings</button>
@@ -332,6 +289,7 @@
         <div class="tasks-filters">
           <button type="button" class="pill-filter" id="exportJsonBtn">Export as JSON</button>
           <button type="button" class="pill-filter" id="exportCsvBtn">Export as CSV</button>
+          <button type="button" class="pill-filter danger" id="clearDataBtn">Clear Data</button>
         </div>
       </div>
 

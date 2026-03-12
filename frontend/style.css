@@ -550,6 +550,11 @@ button[type="submit"]:hover {
   background: rgba(249, 115, 22, 0.2);
 }
 
+.pill-filter.danger {
+  border-color: rgba(239, 68, 68, 0.9);
+  background: rgba(239, 68, 68, 0.2);
+}
+
 .week-agenda {
   margin-top: 24px;
   border-radius: 18px;
