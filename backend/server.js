@@ -27,6 +27,36 @@ db.exec(`
 `);
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    dueDate TEXT,
+    startTime TEXT,
+    endTime TEXT,
+    priority TEXT DEFAULT 'Medium',
+    category TEXT,
+    tags TEXT,
+    recurrence TEXT DEFAULT 'none',
+    attachments TEXT,
+    reminderAt TEXT,
+    status TEXT DEFAULT 'Pending',
+    createdAt TEXT DEFAULT (datetime('now')),
+    completedAt TEXT
+  )
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS subtasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    taskId INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    completed INTEGER DEFAULT 0,
+    FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE
+  )
+`);
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
@@ -72,30 +102,127 @@ app.post('/login', function(req, res) {
   res.json({ token });
 });
 
-app.get('/quotes', authenticateToken, function(req, res) {
-  const quotes = db.prepare('SELECT * FROM quotes').all();
-  res.json(quotes);
+// Simple personal-use tasks API
+app.get('/tasks', authenticateToken, function(req, res) {
+  const tasks = db
+    .prepare('SELECT * FROM tasks ORDER BY dueDate IS NULL, dueDate ASC, createdAt DESC')
+    .all();
+  const subtasks = db.prepare('SELECT * FROM subtasks').all();
+  res.json({ tasks, subtasks });
 });
 
-app.post('/quotes', authenticateToken, function(req, res) {
-  const { clientName, serviceDescription, amount, quoteDate } = req.body;
-  const quoteNumber = generateNumber('QT', quoteDate);
-  const result = db.prepare(
-    'INSERT INTO quotes (quoteNumber, clientName, serviceDescription, amount, quoteDate) VALUES (?, ?, ?, ?, ?)'
-  ).run(quoteNumber, clientName, serviceDescription, amount, quoteDate);
-  res.json({ id: result.lastInsertRowid, quoteNumber, clientName, serviceDescription, amount, quoteDate, status: 'Draft' });
-});
-
-app.patch('/quotes/:id', authenticateToken, function(req, res) {
-  const { status } = req.body;
-  if (status === 'Invoiced') {
-    const quote = db.prepare('SELECT * FROM quotes WHERE id = ?').get(req.params.id);
-    const invoiceNumber = generateNumber('INV', quote.quoteDate || new Date().toISOString());
-    db.prepare('UPDATE quotes SET status = ?, invoiceNumber = ? WHERE id = ?').run(status, invoiceNumber, req.params.id);
-  } else {
-    db.prepare('UPDATE quotes SET status = ? WHERE id = ?').run(status, req.params.id);
+app.post('/tasks', authenticateToken, function(req, res) {
+  const {
+    title,
+    description,
+    dueDate,
+    startTime,
+    endTime,
+    priority,
+    category,
+    tags,
+    recurrence,
+    attachments,
+    reminderAt,
+    subtasks
+  } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
   }
-  res.json({ success: true });
+  const stmt = db.prepare(
+    'INSERT INTO tasks (title, description, dueDate, startTime, endTime, priority, category, tags, recurrence, attachments, reminderAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  );
+  const info = stmt.run(title, description || '', dueDate || null);
+  const taskId = info.lastInsertRowid;
+
+  if (Array.isArray(subtasks)) {
+    const subStmt = db.prepare('INSERT INTO subtasks (taskId, title, completed) VALUES (?, ?, ?)');
+    subtasks.forEach(function(st) {
+      if (st && st.title) {
+        subStmt.run(taskId, st.title, st.completed ? 1 : 0);
+      }
+    });
+  }
+
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+  const createdSubtasks = db.prepare('SELECT * FROM subtasks WHERE taskId = ?').all(taskId);
+  res.json({ task, subtasks: createdSubtasks });
+});
+
+app.patch('/tasks/:id', authenticateToken, function(req, res) {
+  const {
+    title,
+    description,
+    dueDate,
+    startTime,
+    endTime,
+    priority,
+    category,
+    tags,
+    recurrence,
+    attachments,
+    reminderAt,
+    status,
+    subtasks
+  } = req.body;
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  const updated = {
+    title: title !== undefined ? title : existing.title,
+    description: description !== undefined ? description : existing.description,
+    dueDate: dueDate !== undefined ? dueDate : existing.dueDate,
+    startTime: startTime !== undefined ? startTime : existing.startTime,
+    endTime: endTime !== undefined ? endTime : existing.endTime,
+    priority: priority !== undefined ? priority : existing.priority,
+    category: category !== undefined ? category : existing.category,
+    tags: tags !== undefined ? tags : existing.tags,
+    recurrence: recurrence !== undefined ? recurrence : existing.recurrence,
+    attachments: attachments !== undefined ? attachments : existing.attachments,
+    reminderAt: reminderAt !== undefined ? reminderAt : existing.reminderAt,
+    status: status !== undefined ? status : existing.status
+  };
+  const completedAt =
+    updated.status === 'Completed' && !existing.completedAt
+      ? new Date().toISOString()
+      : updated.status !== 'Completed'
+      ? null
+      : existing.completedAt;
+
+  db.prepare(
+    'UPDATE tasks SET title = ?, description = ?, dueDate = ?, startTime = ?, endTime = ?, priority = ?, category = ?, tags = ?, recurrence = ?, attachments = ?, reminderAt = ?, status = ?, completedAt = ? WHERE id = ?'
+  ).run(
+    updated.title,
+    updated.description,
+    updated.dueDate,
+    updated.startTime,
+    updated.endTime,
+    updated.priority,
+    updated.category,
+    updated.tags,
+    updated.recurrence,
+    updated.attachments,
+    updated.reminderAt,
+    updated.status,
+    completedAt,
+    req.params.id
+  );
+
+  if (Array.isArray(subtasks)) {
+    const taskId = Number(req.params.id);
+    db.prepare('DELETE FROM subtasks WHERE taskId = ?').run(taskId);
+    const subStmt = db.prepare('INSERT INTO subtasks (taskId, title, completed) VALUES (?, ?, ?)');
+    subtasks.forEach(function(st) {
+      if (st && st.title) {
+        subStmt.run(taskId, st.title, st.completed ? 1 : 0);
+      }
+    });
+  }
+
+  const saved = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
+  const savedSubtasks = db.prepare('SELECT * FROM subtasks WHERE taskId = ?').all(req.params.id);
+  res.json({ task: saved, subtasks: savedSubtasks });
 });
 
 app.listen(3000, function() {

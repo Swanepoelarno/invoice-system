@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice System</title>
+    <title>Personal Dashboard</title>
     <!-- Modern font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,26 +11,30 @@
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <!-- Charts -->
+    <!-- Charts (used by New Dashboard view) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   </head>
   <body>
 
     <!-- Sidebar -->
     <div class="sidebar">
-      <div class="sidebar-logo">IS</div>
+      <div class="sidebar-logo">PD</div>
       <nav class="sidebar-nav">
         <div class="nav-item active" onclick="showView('dashboard', this)">
           <i class="fas fa-chart-pie"></i>
           <span>Dashboard</span>
         </div>
-        <div class="nav-item" onclick="showView('quotes', this)">
-          <i class="fas fa-file-alt"></i>
-          <span>Quotes</span>
+        <div class="nav-item" onclick="showView('tasks', this)">
+          <i class="fas fa-list-check"></i>
+          <span>Tasks</span>
         </div>
-        <div class="nav-item" onclick="showView('invoices', this)">
-          <i class="fas fa-file-invoice-dollar"></i>
-          <span>Invoices</span>
+        <div class="nav-item" onclick="showView('calendar', this)">
+          <i class="fas fa-calendar-days"></i>
+          <span>Calendar</span>
+        </div>
+        <div class="nav-item" onclick="showView('settings', this)">
+          <i class="fas fa-sliders"></i>
+          <span>Settings</span>
         </div>
         <div class="nav-item nav-item-logout" onclick="logout()">
           <i class="fas fa-sign-out-alt"></i>
@@ -43,61 +47,299 @@
 
       <!-- Dashboard View -->
       <div id="view-dashboard" class="view active">
-        <h1>Dashboard</h1>
-        <div class="dashboard">
-          <div class="dashboard-card">
-            <p class="dashboard-label">Total Invoiced</p>
-            <p class="dashboard-value" id="totalInvoiced">R0</p>
-          </div>
-          <div class="dashboard-card">
-            <p class="dashboard-label">Total Paid</p>
-            <p class="dashboard-value" id="totalPaid">R0</p>
-          </div>
-          <div class="dashboard-card">
-            <p class="dashboard-label">Outstanding</p>
-            <p class="dashboard-value" id="totalOutstanding">R0</p>
-          </div>
-        </div>
-        <div class="chart-container">
-          <canvas id="paymentChart"></canvas>
+        <div class="dash-page">
+          <header class="dash-topbar">
+            <div class="dash-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="dashSearchInput" type="search" placeholder="Search tasks by title, tag, or category…" autocomplete="off">
+            </div>
+            <div class="dash-top-actions">
+              <button class="dash-icon-btn" type="button" id="themeToggleBtn" aria-label="Toggle theme">
+                <i class="fa-regular fa-moon"></i>
+              </button>
+              <div class="dash-user">
+                <div class="dash-avatar" aria-hidden="true">TM</div>
+                <div class="dash-user-meta">
+                  <div class="dash-user-name" id="dashUserName">Admin</div>
+                  <div class="dash-user-email" id="dashUserEmail">Authenticated</div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <section class="dash-header">
+            <div>
+              <h1 class="dash-title">Dashboard</h1>
+              <p class="dash-subtitle">Track your tasks and days at a glance.</p>
+            </div>
+            <div class="dash-cta">
+              <button class="dash-btn primary" type="button" id="dashNewQuoteBtn">
+                <i class="fa-solid fa-plus"></i>
+                <span>New Quote</span>
+              </button>
+              <button class="dash-btn" type="button" id="dashRefreshBtn">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="dash-grid">
+            <div class="dash-col-left">
+              <div class="dash-cards">
+                <div class="dash-card emphasize">
+                  <div class="dash-card-top">
+                    <div class="dash-card-label">Total Tasks</div>
+                    <div class="dash-card-chip"><i class="fa-solid fa-arrow-trend-up"></i> Live</div>
+                  </div>
+                  <div class="dash-card-value" id="dashKpiTotalTasks">0</div>
+                  <div class="dash-card-foot" id="dashKpiTotalTasksHint">All tasks</div>
+                </div>
+
+                <div class="dash-card">
+                  <div class="dash-card-top">
+                    <div class="dash-card-label">Completed</div>
+                    <button class="dash-card-link" type="button" id="dashOpenCompletedBtn">View</button>
+                  </div>
+                  <div class="dash-card-value" id="dashKpiCompleted">0</div>
+                  <div class="dash-card-foot" id="dashKpiCompletedHint">Done</div>
+                </div>
+
+                <div class="dash-card">
+                  <div class="dash-card-top">
+                    <div class="dash-card-label">Pending</div>
+                    <button class="dash-card-link" type="button" id="dashOpenPendingBtn">View</button>
+                  </div>
+                  <div class="dash-card-value" id="dashKpiPending">0</div>
+                  <div class="dash-card-foot" id="dashKpiPendingHint">Not done yet</div>
+                </div>
+
+                <div class="dash-card">
+                  <div class="dash-card-top">
+                    <div class="dash-card-label">This Week</div>
+                    <div class="dash-card-pill" id="dashKpiWeekBadge">0</div>
+                  </div>
+                  <div class="dash-card-value" id="dashKpiWeekCount">0</div>
+                  <div class="dash-card-foot">Tasks due this week</div>
+                </div>
+              </div>
+
+              <div class="dash-panels">
+                <section class="dash-panel">
+                  <div class="dash-panel-head">
+                    <div>
+                      <div class="dash-panel-title">Invoice Analytics</div>
+                      <div class="dash-panel-sub">Tasks created and completed over time</div>
+                    </div>
+                    <div class="dash-panel-actions">
+                      <button class="dash-pill-btn active" type="button" data-range="7">7d</button>
+                      <button class="dash-pill-btn" type="button" data-range="30">30d</button>
+                      <button class="dash-pill-btn" type="button" data-range="90">90d</button>
+                    </div>
+                  </div>
+                  <div class="dash-chart-wrap">
+                    <canvas id="dashAnalyticsChart"></canvas>
+                  </div>
+                </section>
+
+                <section class="dash-panel">
+                  <div class="dash-panel-head">
+                    <div>
+                      <div class="dash-panel-title">Client Activity</div>
+                      <div class="dash-panel-sub">Days with the most tasks</div>
+                    </div>
+                  </div>
+                  <div class="dash-chart-wrap small">
+                    <canvas id="dashClientsChart"></canvas>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <aside class="dash-col-right">
+              <section class="dash-widget">
+                <div class="dash-widget-head">
+                  <div class="dash-widget-title">Upcoming Tasks</div>
+                  <button class="dash-widget-btn" type="button" id="dashNewProjectBtn">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>New</span>
+                  </button>
+                </div>
+                <div class="dash-list" id="dashProjectsList">
+                  <div class="dash-empty">Loading…</div>
+                </div>
+              </section>
+
+              <section class="dash-widget">
+                <div class="dash-widget-head">
+                  <div class="dash-widget-title">Time Tracker</div>
+                  <div class="dash-tag" id="dashTimerState">Stopped</div>
+                </div>
+                <div class="dash-timer">
+                  <div class="dash-timer-time" id="dashTimerValue">00:00:00</div>
+                  <div class="dash-timer-actions">
+                    <button class="dash-round-btn" type="button" id="dashTimerStartBtn" aria-label="Start">
+                      <i class="fa-solid fa-play"></i>
+                    </button>
+                    <button class="dash-round-btn danger" type="button" id="dashTimerStopBtn" aria-label="Stop">
+                      <i class="fa-solid fa-stop"></i>
+                    </button>
+                    <button class="dash-round-btn" type="button" id="dashTimerResetBtn" aria-label="Reset">
+                      <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </section>
         </div>
       </div>
 
-      <!-- Quotes View -->
-      <div id="view-quotes" class="view">
-        <h1>Quotes</h1>
+      <!-- Tasks View -->
+      <div id="view-tasks" class="view">
+        <h1>Tasks</h1>
 
-        <h2>Create New Quote</h2>
-        <form id="quoteForm">
-          <label>Client Name</label>
-          <input type="text" id="clientName" placeholder="Enter client name">
+        <h2>Create Task</h2>
+        <form id="taskForm">
+          <label>Title</label>
+          <input type="text" id="taskTitle" placeholder="What do you need to do?">
 
-          <label>Service Description</label>
-          <input type="text" id="serviceDescription" placeholder="Describe the service">
+          <label>Description</label>
+          <input type="text" id="taskDescription" placeholder="Optional details">
 
-          <label>Date</label>
-          <input type="date" id="quoteDate">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Due Date</label>
+              <input type="date" id="taskDueDate">
+            </div>
+            <div class="form-field">
+              <label>Start Time</label>
+              <input type="time" id="taskStartTime">
+            </div>
+            <div class="form-field">
+              <label>End Time</label>
+              <input type="time" id="taskEndTime">
+            </div>
+          </div>
 
-          <label>Amount (R)</label>
-          <input type="number" id="amount" placeholder="0.00">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Priority</label>
+              <select id="taskPriority">
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Category</label>
+              <input type="text" id="taskCategory" placeholder="Work, Personal, Health…">
+            </div>
+            <div class="form-field">
+              <label>Tags</label>
+              <input type="text" id="taskTags" placeholder="Comma separated e.g. focus,deep-work">
+            </div>
+          </div>
 
-          <label>Final Amount <span style="font-size:11px; font-weight:normal; color:#888;">— VAT included</span></label>
-          <input type="number" id="finalAmount" placeholder="0.00" readonly>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Recurrence</label>
+              <select id="taskRecurrence">
+                <option value="none" selected>None</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Reminder</label>
+              <input type="datetime-local" id="taskReminderAt">
+            </div>
+          </div>
+
+          <label>Attachments / Links</label>
+          <textarea id="taskAttachments" rows="2" placeholder="Paste URLs or notes (one per line)"></textarea>
+
+          <label>Subtasks (one per line)</label>
+          <textarea id="taskSubtasks" rows="3" placeholder="Subtask 1&#10;Subtask 2"></textarea>
 
           <br><br>
-          <button type="submit">Save Quote</button>
+          <button type="submit">Save Task</button>
         </form>
 
-        <h2 id="quotesHeading" style="display:none; margin-top:40px;">Saved Quotes</h2>
-        <div id="quotesList"></div>
+        <div class="tasks-filters">
+          <button type="button" class="pill-filter active" data-filter="all">All</button>
+          <button type="button" class="pill-filter" data-filter="today">Today</button>
+          <button type="button" class="pill-filter" data-filter="next7">Next 7 days</button>
+          <button type="button" class="pill-filter" data-filter="overdue">Overdue</button>
+          <button type="button" class="pill-filter" data-filter="high">High priority</button>
+        </div>
+
+        <h2 id="tasksHeading" style="display:none; margin-top:24px;">Your Tasks</h2>
+        <div id="tasksList"></div>
       </div>
 
-      <!-- Invoices View -->
-      <div id="view-invoices" class="view">
-        <h1>Invoices</h1>
-        <div id="invoicesList"></div>
+      <!-- Calendar View -->
+      <div id="view-calendar" class="view">
+        <h1>Calendar</h1>
+        <div class="calendar-mode-toggle">
+          <button type="button" class="pill-filter active" id="calModeMonth">Month</button>
+          <button type="button" class="pill-filter" id="calModeWeek">Week</button>
+        </div>
+        <div class="calendar-header">
+          <button type="button" class="calendar-nav" id="calPrev">&lt;</button>
+          <div class="calendar-title" id="calTitle"></div>
+          <button type="button" class="calendar-nav" id="calNext">&gt;</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="week-agenda" id="weekAgenda" style="display:none;"></div>
       </div>
 
+      <!-- Settings View -->
+      <div id="view-settings" class="view">
+        <h1>Settings</h1>
+
+        <form id="settingsForm">
+          <div class="form-row">
+            <div class="form-field">
+              <label>Theme</label>
+              <select id="settingsTheme">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Weekly Goal (tasks)</label>
+              <input type="number" id="settingsWeeklyGoal" min="1" value="20">
+            </div>
+            <div class="form-field">
+              <label>Default Task Filter</label>
+              <select id="settingsDefaultFilter">
+                <option value="all">All</option>
+                <option value="today">Today</option>
+                <option value="next7">Next 7 days</option>
+                <option value="overdue">Overdue</option>
+                <option value="high">High priority</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit">Save Settings</button>
+        </form>
+
+        <h2 style="margin-top:32px;">Backup</h2>
+        <div class="tasks-filters">
+          <button type="button" class="pill-filter" id="exportJsonBtn">Export as JSON</button>
+          <button type="button" class="pill-filter" id="exportCsvBtn">Export as CSV</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+      <div class="loading-spinner"></div>
     </div>
 
     <script src="app.js"></script>
