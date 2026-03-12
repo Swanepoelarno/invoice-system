@@ -1,3 +1,7 @@
+const token = localStorage.getItem('token');
+if (!token) {
+  window.location.href = 'login.html';
+}
 const API_URL = 'http://localhost:3000';
 
 const form = document.getElementById('quoteForm');
@@ -32,7 +36,9 @@ window.onload = function() {
 };
 
 function fetchQuotes() {
-  fetch(`${API_URL}/quotes`)
+  fetch(`${API_URL}/quotes`, {
+    headers: { 'Authorization': token }
+  })
     .then(function(response) {
       return response.json();
     })
@@ -57,11 +63,14 @@ form.addEventListener('submit', function(event) {
     return;
   }
 
-  fetch(`${API_URL}/quotes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientName, serviceDescription, amount, quoteDate })
-  })
+ fetch(`${API_URL}/quotes`, {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': token
+  },
+  body: JSON.stringify({ clientName, serviceDescription, amount, quoteDate })
+})
     .then(function(response) {
       return response.json();
     })
@@ -74,10 +83,13 @@ form.addEventListener('submit', function(event) {
 
 function updateStatus(id, newStatus) {
   fetch(`${API_URL}/quotes/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status: newStatus })
-  })
+  method: 'PATCH',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': token
+  },
+  body: JSON.stringify({ status: newStatus })
+})
     .then(function() {
       fetchQuotes();
     });
@@ -240,4 +252,8 @@ function displayInvoices(quotes) {
     `;
     invoicesList.appendChild(card);
   });
+}
+function logout() {
+  localStorage.removeItem('token');
+  window.location.href = 'login.html';
 }

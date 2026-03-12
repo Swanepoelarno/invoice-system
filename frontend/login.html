@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice System — Login</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body class="login-body">
+
+    <div class="login-container">
+      <div class="login-logo">IS</div>
+      <h1 class="login-title">Invoice System</h1>
+      <p class="login-subtitle">Sign in to continue</p>
+
+      <form id="loginForm">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+
+        <p id="loginError" style="color:#e74c3c; font-size:13px; display:none;">Invalid username or password.</p>
+
+        <br>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
+
+    <script src="login.js"></script>
+  </body>
+</html>
